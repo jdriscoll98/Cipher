@@ -10,26 +10,63 @@ BOTTOM_RIGHT_X = 80
 
 
 def main(stdscr):
-    stdscr.clear()
-    print_screen(stdscr)
-    print_menu(stdscr)
 
     text = "This is a haiku; it is not too long I think; but you may disagree"
     key = "But there's one sound that no one knows... What does the Fox say?"
-    print_text_and_key(stdscr, text, key)
-
-    # stdscr.refresh()
-
     # # Wait for user input
-    stdscr.getkey()
+
+    status = "Application started successfully"
+    while 1:
+        stdscr.clear()
+        print_screen(stdscr, status)
+        print_menu(stdscr)
+        print_text_and_key(stdscr, text, key)
+        option = stdscr.getkey()
+        # if key is f or F, read text from a file
+        if option == "f" or option == "F":
+            tb = display_input_box(
+                stdscr, "Enter file to load below, then press [ENTER]"
+            )
+            filename = get_input_from_user(tb)
+            if filename == "":
+                status = "File load cancelled"
+                continue
+
+            try:
+                with open(filename, "r") as f:
+                    text = f.read().strip().rstrip()
+                    status = "File contents loaded successfully"
+            except IOError:
+                status = f"ERROR: COULD NOT LOAD FILE: {filename}"
 
 
-def print_screen(stdscr):
+def get_input_from_user(textbox):
+    value = textbox.edit()
+    return value.strip().rstrip()
+
+
+def display_input_box(stdscr, msg):
+    create_box(6, 78, 18, 1)
+    stdscr.addstr(19, COL // 2 - len(msg) // 2, msg)
+    stdscr.refresh()
+    create_box(3, 68, 20, 6)
+    input_area = curses.newwin(1, 65, 21, 7)
+    return curses.textpad.Textbox(input_area)
+
+
+def create_box(height, width, y, x):
+    box = curses.newwin(height, width, y, x)
+    box.box()
+    box.refresh()
+    return box
+
+
+def print_screen(stdscr, status):
     # display status message
     stdscr.addstr(
         25,
         0,
-        "Status: Application started successfully.",
+        f"Status: {status}.",
     )
     stdscr.refresh()
     # draw a 25 (row) x 80 (col) box
@@ -58,7 +95,7 @@ def print_menu(stdscr):
 
 
 def print_text_and_key(stdscr, text, key):
-    display = curses.newwin(4, 78, 13, 1)
+    display = curses.newwin(4, 76, 13, 2)
     display.box()
     display.refresh()
 
