@@ -39,6 +39,41 @@ def main(stdscr):
             except IOError:
                 status = f"ERROR: COULD NOT LOAD FILE: {filename}"
 
+        # if key is i or I, read text from user input
+        elif option == "i" or option == "I":
+            tb = display_input_box(
+                stdscr, "Enter new text below, then press [ENTER]"
+            )
+            new_text = get_input_from_user(tb)
+            if new_text == "":
+                status = "Cancelled user input of text (empty string)"
+                continue
+            text = new_text.strip().rstrip()
+            status = "New text loaded into memory from user input"
+        # if key is r or R, apply rust cipher to this text
+        elif option == "r" or option == "R":
+            status = "Applying rust cipher to this text"
+            # TODO: Implement rust cipher
+        # if key is p or P, apply python cipher to this text
+        elif option == "p" or option == "P":
+            status = "Applied Python cipher"
+            text = text.encode("cp437")
+            key = key.encode("cp437")
+            # apply cipher
+            cipher_text = cipher(text, key).decode("cp437")
+            key = key.decode("cp437")
+            ctrl_translation = str.maketrans(
+                bytes(range(0, 32)).decode("cp437"),
+                "�☺☻♥♦♣♠•◘○◙♂♀♪♫☼►◄↕!¶§▬↨↑↓→←∟↔▲▼",
+            )
+            text = cipher_text.translate(ctrl_translation)
+
+
+def cipher(message: bytes, key: bytes) -> bytes:
+    return bytes(
+        [message[i] ^ key[i % len(key)] for i in range(0, len(message))]
+    )
+
 
 def get_input_from_user(textbox):
     value = textbox.edit()
