@@ -1,6 +1,7 @@
 import curses
 import ctypes
 import curses.textpad as textpad
+import timeit
 
 ROW = 25
 COL = 80
@@ -18,9 +19,11 @@ def run_gui(background):
     # # Wait for user input
 
     status = "Application started successfully."
+    benchmarks = None
     while 1:
         background.clear()
-        print_screen(background, status)
+        print_screen(background, status, benchmarks)
+        benchmarks = None
         print_menu(background)
         print_text_and_key(background, display_text, key)
         option = background.getkey()
@@ -82,6 +85,33 @@ def run_gui(background):
                 continue
             key = new_key.strip().rstrip()
             status = "New key loaded into memory from user input."
+        # if key is b or B, run benchmarks
+        elif option.lower() == "b":
+            create_box(6, 78, 18, 1)
+            background.addstr(
+                19,
+                COL // 2 - len("Running benchmarks....") // 2,
+                "Running benchmarks....",
+            )
+            background.refresh()
+            # use timeit module to run benchmarks on python and rust cipher
+            py_time = timeit.timeit(
+                stmt="cipher(text, key)",
+                setup=f'from __main__ import cipher\ntext = {text.encode("cp437")}\nkey={key.encode("cp437")}',
+                number=100000,
+            )
+
+            rust_time = timeit.timeit(
+                stmt="lib.cipher(text_bytes, key_bytes, shared_text, len(text_bytes), len(key_bytes))",
+                setup=f'from __main__ import load_cipher_lib, ctypes\nlib=load_cipher_lib("./libxorcipher.so")\ntext_bytes = {text.encode("cp437")};\nkey_bytes = {key.encode("cp437")};\nshared_text = ctypes.create_string_buffer(len(text_bytes));\nlib.cipher(text_bytes, key_bytes, shared_text, len(text_bytes), len(key_bytes))',
+                number=100000,
+            )
+
+            benchmarks = {
+                "py_time": py_time,
+                "rust_time": rust_time,
+            }
+
         # if key is q or Q, quit the application
         elif option.lower() == "q":
             break
@@ -96,7 +126,9 @@ def run_rust_cipher(text, key):
     # create a pointer to a new string the same length as the text
     shared_text = ctypes.create_string_buffer(len(text_bytes))
     # call the rust lib to encrypt the text
-    lib.cipher(text_bytes, key_bytes, shared_text, len(text_bytes), len(key))
+    lib.cipher(
+        text_bytes, key_bytes, shared_text, len(text_bytes), len(key_bytes)
+    )
     # get the value of the shared pointer
     text = shared_text.raw.decode("cp437")
     return text
@@ -146,7 +178,7 @@ def create_box(height, width, y, x):
     return box
 
 
-def print_screen(background, status):
+def print_screen(background, status, benchmarks):
     # display status message
     background.addstr(
         25,
@@ -162,6 +194,35 @@ def print_screen(background, status):
     msg = "Welcome to the XOR-Cipher App!"
     background.addstr(1, COL // 2 - len(msg) // 2, msg)
     background.refresh()
+
+    if benchmarks:
+        create_box(6, 78, 18, 1)
+        msg = "Results from benchmark"
+        msg_len = len(msg)
+        background.addstr(
+            19,
+            COL // 2 - msg_len // 2,
+            msg,
+        )
+        background.addstr(20, COL // 2 - msg_len // 2, f"{'-' * msg_len}")
+        background.addstr(21, COL // 2 - msg_len // 2, "Rust Cipher: ")
+        # replace whitespace with 0s
+        rust_time = benchmarks["rust_time"]
+        rust_time = f"{rust_time:6.3f}s"
+        rust_time = rust_time.replace(" ", "0")
+        background.addstr(21, COL // 2 + msg_len // 2 - 7, f"{rust_time}")
+        background.addstr(22, COL // 2 - msg_len // 2, "Python Cipher: ")
+        # replace whiterspace with 0s
+        py_time = benchmarks["py_time"]
+        py_time = f"{py_time:6.3f}s"
+        py_time = py_time.replace(" ", "0")
+        background.addstr(22, COL // 2 + msg_len // 2 - 7, f"{py_time}")
+        background.addstr(
+            25,
+            0,
+            f"Status: Benchmark results displayed.     ",
+        )
+        background.refresh()
 
 
 def print_menu(background):
