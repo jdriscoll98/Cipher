@@ -17,7 +17,7 @@ def run_gui(background):
     key = "But there's one sound that no one knows... What does the Fox say?"
     # # Wait for user input
 
-    status = "Application started successfully"
+    status = "Application started successfully."
     while 1:
         background.clear()
         print_screen(background, status)
@@ -31,15 +31,15 @@ def run_gui(background):
             )
             filename = get_input_from_user(tb)
             if filename == "":
-                status = "File load cancelled"
+                status = "File load cancelled."
                 continue
 
             try:
                 with open(filename, "r") as f:
                     text = f.read().strip().rstrip()
-                    status = "File contents loaded successfully"
+                    status = "File contents loaded successfully."
             except IOError:
-                status = f"ERROR: COULD NOT LOAD FILE: {filename}"
+                status = f"ERROR: COULD NOT LOAD FILE: {filename}."
 
         # if key is i or I, read text from user input
         elif option.lower() == "i":
@@ -48,39 +48,51 @@ def run_gui(background):
             )
             new_text = get_input_from_user(tb)
             if new_text == "":
-                status = "Cancelled user input of text (empty string)"
+                status = "Cancelled user input of text (empty string)."
                 continue
             text = new_text.strip().rstrip()
-            status = "New text loaded into memory from user input"
+            status = "New text loaded into memory from user input."
         # if key is r or R, apply rust cipher to this text
         elif option.lower() == "r":
-            lib = load_cipher_lib("./libxorcipher.so")
-            text_bytes = text.encode("cp437")
-            key_bytes = key.encode("cp437")
-            # create a pointer to a new string the same length as the text
-            shared_text = ctypes.create_string_buffer(len(text_bytes))
-            # call the rust lib to encrypt the text
-            lib.cipher(
-                text_bytes, key_bytes, shared_text, len(text_bytes), len(key)
-            )
-            # get the value of the shared pointer
-            text = shared_text.raw.decode("cp437")
+            text = run_rust_cipher(text, key)
             display_text = translate(text)
-            status = "Applied Rust cipher"
-            # pakuri_bytes = struct.pack("bb50s", 15, 6, b"Chuchu")
-            # lib.cipher(pakuri_bytes, len(pakuri_bytes))
-            # result = struct.unpack("bb50s", lib.result.value)
-            # print(result.decode())
+            status = "Applied Rust cipher."
         # if key is p or P, apply python cipher to this text
         elif option.lower() == "p":
-            status = "Applied Python cipher"
-            text = text.encode("cp437")
-            key = key.encode("cp437")
-            # apply cipher
-            text = cipher(text, key).decode("cp437")
-            key = key.decode("cp437")
+            text = run_python_cipher(text, key)
             display_text = translate(text)
-            status = "Applied Python cipher"
+            status = "Applied Python cipher."
+        # if key is v or V, verify cipher results match
+        elif option.lower() == "v":
+            # Run both ciphers and compare results
+            text_rust = run_rust_cipher(text, key)
+            text_python = run_python_cipher(text, key)
+            if text_rust != text_python:
+                status = "WARNING: ciphers do not match!"
+            else:
+                status = "Cipher match verified!"
+
+
+def run_rust_cipher(text, key):
+    lib = load_cipher_lib("./libxorcipher.so")
+    text_bytes = text.encode("cp437")
+    key_bytes = key.encode("cp437")
+    # create a pointer to a new string the same length as the text
+    shared_text = ctypes.create_string_buffer(len(text_bytes))
+    # call the rust lib to encrypt the text
+    lib.cipher(text_bytes, key_bytes, shared_text, len(text_bytes), len(key))
+    # get the value of the shared pointer
+    text = shared_text.raw.decode("cp437")
+    return text
+
+
+def run_python_cipher(text, key):
+    text = text.encode("cp437")
+    key = key.encode("cp437")
+    # apply cipher
+    text = cipher(text, key).decode("cp437")
+    key = key.decode("cp437")
+    return text
 
 
 def translate(text):
@@ -123,7 +135,7 @@ def print_screen(background, status):
     background.addstr(
         25,
         0,
-        f"Status: {status}.",
+        f"Status: {status}",
     )
     background.refresh()
     # draw a 25 (row) x 80 (col) box
