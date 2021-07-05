@@ -1,6 +1,6 @@
 import curses
 import ctypes
-import struct
+import curses.textpad as textpad
 
 ROW = 25
 COL = 80
@@ -71,6 +71,22 @@ def run_gui(background):
                 status = "WARNING: ciphers do not match!"
             else:
                 status = "Cipher match verified!"
+        # if key is k or K , get key from user input
+        elif option.lower() == "k":
+            tb = display_input_box(
+                background, "Enter new key below, then press [ENTER]"
+            )
+            new_key = get_input_from_user(tb)
+            if new_key == "":
+                status = "Cancelled user input of key (empty string)."
+                continue
+            key = new_key.strip().rstrip()
+            status = "New key loaded into memory from user input."
+        # if key is q or Q, quit the application
+        elif option.lower() == "q":
+            break
+        else:
+            status = "ERROR: Invalid menu selection."
 
 
 def run_rust_cipher(text, key):
@@ -120,7 +136,7 @@ def display_input_box(background, msg):
     background.refresh()
     create_box(3, 68, 20, 6)
     input_area = curses.newwin(1, 65, 21, 7)
-    return curses.textpad.Textbox(input_area)
+    return textpad.Textbox(input_area)
 
 
 def create_box(height, width, y, x):
@@ -198,3 +214,4 @@ def printOptionToScreen(background, msg, y):
 
 if __name__ == "__main__":
     curses.wrapper(run_gui)
+    print("Thanks for using the XOR-Cipher App; See you next time!")
